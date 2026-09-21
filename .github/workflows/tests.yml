@@ -1,0 +1,71 @@
+# The test suite in CI.
+#
+# Until now it ran in one place: whoever's machine, by hand, when they remembered. pii-guard has
+# always run here, so the repo published a green check that said nothing about whether the library
+# still works. A suite that proves the invariants and never runs where the merge decision is made
+# is a habit, not a gate.
+#
+# Two things below are not decoration.
+#
+# `submodules: true`, because without it guards/ and style/ are present and EMPTY. This repo's
+# tests do not call into them, but tests/test_repo_hygiene.py filters submodule paths by prefix,
+# and a checkout that silently differs from a developer's is how a check starts testing something
+# else.
+#
+# The hollow-run assertion, because `pytest` exits 0 on a run that collected nothing. Every test
+# here is offline and none of them can skip, so a zero-test run means collection broke, not that
+# there was nothing to do. "Everything passed" and "nothing ran" have to be different outcomes.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Installing the package itself, not just the requirements: it is how the README tells
+      # people to install, so it is the thing that has to keep working.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest
+
+      - name: Import the package the way a user would
+        run: python -c "import grokbot_cdp; print(grokbot_cdp.__version__)"
+
+      # set -o pipefail is load-bearing. A pipeline's status is its LAST command, so
+      # `pytest | tee` would report tee's success and a red suite would sail through green.
+      # GitHub's default bash runs with -e but NOT pipefail.
+      - name: Run the suite
+        run: |
+          set -o pipefail
+          python -m pytest tests/ -q 2>&1 | tee test-output.txt
+
+      - name: Assert the run was not hollow
+        run: |
+          line=$(grep -E '[0-9]+ (passed|failed|error)' test-output.txt | tail -1)
+          echo "summary: $line"
+          passed=$(printf '%s' "$line" | grep -oE '[0-9]+ passed' | grep -oE '^[0-9]+' || true)
+          if [ -z "$passed" ] || [ "$passed" -lt 1 ]; then
+            echo "::error::zero tests passed -- collection produced nothing and pytest still exited 0"
+            exit 1
+          fi
+          if printf '%s' "$line" | grep -q skipped; then
+            echo "::error::a test skipped; nothing here is allowed to, every test in this suite is offline"
+            exit 1
+          fi
