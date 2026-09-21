@@ -15,12 +15,13 @@ are not possible on it.
 from .app import cdp_is_open, find_app, launch
 from .cdp import Cdp, CdpError, find_vm_target, list_targets
 from .secrets import describe_env_file, json_header_value, shell_quote, write_env_file
-from .vm import CanvasRect, VmSession
+from .vm import CanvasRect, StaleFrameError, VmSession
 
 __all__ = [
     "Cdp",
     "CdpError",
     "CanvasRect",
+    "StaleFrameError",
     "VmSession",
     "cdp_is_open",
     "describe_env_file",
