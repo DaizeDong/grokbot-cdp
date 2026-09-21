@@ -1,0 +1,70 @@
+# Packaging metadata, so `pip install -e .` works and the library can be
+# imported from anywhere rather than only from a checkout.
+#
+# Two deliberate choices:
+#
+# The version is read from grokbot_cdp.__init__ rather than written here.
+# Two copies of a version number are two numbers, and the one nobody looks at
+# is the one that goes stale; `pip show` would then disagree with
+# `grokbot_cdp.__version__` and neither would be obviously wrong.
+#
+# requirements.txt stays, because the examples are run straight out of a
+# checkout and that is the file people reach for. It is the same two pins as
+# below, and tests/test_packaging.py fails if the two lists ever diverge.
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grokbot-cdp"
+dynamic = ["version"]
+description = "Drive the cloud machine behind a Grok Bot (xAI computer-use agent) from Python over the Chrome DevTools Protocol: attach to the Electron app's noVNC webview, read the screen, send input."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+keywords = [
+    "grok",
+    "grok-bot",
+    "xai",
+    "cdp",
+    "chrome-devtools-protocol",
+    "electron",
+    "novnc",
+    "vnc",
+    "remote-desktop",
+    "computer-use",
+    "ai-agents",
+    "automation",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Emulators",
+]
+dependencies = [
+    "requests>=2.31",
+    "websocket-client>=1.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/DaizeDong/grokbot-cdp"
+Source = "https://github.com/DaizeDong/grokbot-cdp"
+Issues = "https://github.com/DaizeDong/grokbot-cdp/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "grokbot_cdp.__version__" }
+
+[tool.setuptools]
+# Explicit, because auto-discovery would otherwise walk examples/, tests/ and
+# the two submodules and try to decide which of them are packages.
+packages = ["grokbot_cdp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

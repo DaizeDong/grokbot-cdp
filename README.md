@@ -1,8 +1,18 @@
 # grokbot-cdp
 
-Drive the machine behind a Grok Bot from your own code.
+**Drive the cloud machine behind a Grok Bot (xAI's computer-use agent) from
+Python, over the Chrome DevTools Protocol.** Screenshot its desktop, click,
+type, run shell commands, and put a credential on it without painting it on
+the screen.
 
-## Introduction
+- **No API is required**, because there is none. The only documented way to
+  use that machine is to message the Bot.
+- **No browser automation framework.** Playwright's `connect_over_cdp` cannot
+  see an Electron `<webview>`, so this ships a small raw CDP client instead.
+- **Nothing here is inferred.** Every number and every quirk below came from a
+  run against a real Bot.
+
+## What it is, and what it is for
 
 Grok Bot gives each account a persistent cloud machine with a browser, a
 filesystem and a terminal, and exactly one way to use it: message the Bot.
@@ -29,7 +39,50 @@ with VmSession() as vm:
     vm.screenshot("screen.jpg")
 ```
 
-## What the machine actually is
+## How it works: CDP to the Electron app, then its noVNC webview
+
+Four hops, and only the last two leave this machine.
+
+```mermaid
+flowchart LR
+  subgraph L["LOCAL, loopback only"]
+    direction TB
+    code["<b>Your code</b><br/>grokbot_cdp"]
+    app["<b>Grok Bot desktop app</b><br/>Electron, already signed in<br/>--remote-debugging-port=9222"]
+    wv["<b>noVNC webview target</b><br/>type=webview, url has vnc.html<br/>a canvas, and a websocket"]
+  end
+  subgraph R["ACROSS THE NETWORK, xAI's side"]
+    direction TB
+    host["<b>Session host</b><br/>terminates the RFB websocket<br/>status: Connected (encrypted)"]
+    box["<b>Your cloud computer</b><br/>container: tini as PID 1, no systemd, no cron<br/>desktop 1280x800, passwordless sudo, /workspace<br/><i>shared by every Bot on the account</i>"]
+  end
+
+  code -->|"HTTP GET /json/list<br/>127.0.0.1:9222, pick the target"| app
+  app -.->|"hosts"| wv
+  code ==>|"<b>raw CDP websocket</b><br/>no Origin header<br/>Input.dispatchKeyEvent / dispatchMouseEvent<br/>Page.captureScreenshot"| wv
+  wv ==>|"<b>RFB over WSS</b><br/>keystrokes and mouse out, pixels back"| host
+  host --> box
+  box -.->|"pixels are the only return channel"| code
+
+  classDef local fill:#eef2ff,stroke:#6366f1,color:#0f172a;
+  classDef net fill:#fef9c3,stroke:#ca8a04,color:#0f172a;
+  class code,app,wv local;
+  class host,box net;
+  style L fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+  style R fill:#fffbeb,stroke:#ca8a04,color:#0f172a
+```
+
+**Where the credential boundary sits.** The app's login never leaves the left
+box: this library does not handle sign-in and never reads the session. The
+debugging port is loopback only, but it is a debugging port into a signed-in
+application, so close the app when a run finishes. Anything `write_env_file`
+puts on the machine crosses to the right box and lands somewhere **every Bot
+on the account can reach**, along with their files, browser sessions and app
+logins. That is the boundary worth being careful at, and
+[Secrets](#secrets-putting-a-credential-on-the-machine-without-showing-it)
+is about crossing it.
+
+## What the machine actually is: a container, not a VM
 
 Probed from inside, a Bot's "cloud computer" is a container, not a VM:
 
@@ -59,7 +112,7 @@ client machine rebooted. So a `nohup`-ed loop does survive -- but the container
 is managed by xAI, nothing documents when it is recycled, and `/workspace` was
 empty on first contact.
 
-## Why not the documented paths
+## Why there is no Grok Bot API to use instead
 
 The official docs describe one interface: *"You work with a Bot by messaging
 it."* No REST endpoint, no webhook, no CLI, nothing to create a Bot or read its
@@ -69,7 +122,7 @@ output programmatically.
 machine. The `grok-cli` packages on GitHub are clients for that model API, so
 they do not help either, despite the name.
 
-## What is fragile, and why
+## What is fragile, and why: CDP, noVNC and input quirks
 
 Every item here cost a failed run.
 
@@ -110,7 +163,7 @@ background and nothing happens -- silently.
 click, and the launch takes a few seconds. A single click highlights the icon,
 which looks like it registered.
 
-## Secrets
+## Secrets: putting a credential on the machine without showing it
 
 `write_env_file` turns the terminal's echo off around the credential, creates
 the file under `umask 077`, and writes it one line at a time with `printf`.
@@ -139,7 +192,7 @@ repository the account can reach, and `workflow` can rewrite CI. A deploy key
 is one repository, its private half never leaves the machine, and it can be
 revoked on its own.
 
-## Arrangement
+## Arrangement: what each module does
 
 | Path | What it is |
 | --- | --- |
@@ -148,19 +201,32 @@ revoked on its own.
 | `grokbot_cdp/vm.py` | Read the screen, click, type, run a command. |
 | `grokbot_cdp/secrets.py` | Put a credential on the machine without showing it. |
 | `examples/` | A capability probe and a one-command runner. |
+| `tests/` | Offline checks: target selection, input shape, shell quoting, repository hygiene. |
+| `CONTRIBUTING.md` | How to clone it with its gates, and what has to be measured rather than assumed. |
 
-## Usage
+## Install and run
+
+Python 3.11 or newer, on Windows, macOS or Linux. The only dependencies are
+`requests` and `websocket-client`.
 
 ```
-pip install -r requirements.txt
+git clone --recursive https://github.com/DaizeDong/grokbot-cdp
+cd grokbot-cdp
+pip install -e .                       # or: pip install -r requirements.txt
+
 python examples/probe_host.py          # what can this machine do
 python examples/run_command.py "ls -la /workspace"
 ```
 
+`--recursive` matters: the gates live in submodules, and a plain clone leaves
+those directories present and empty, which `.githooks/pre-commit` refuses
+rather than passing in silence. If you already cloned without it,
+`git submodule update --init --recursive`.
+
 The app must be signed in already. This library does not handle login, and
 should not: that is the one step worth doing yourself.
 
-## Limitations
+## Limitations: no stdout, and no support
 
 Output comes back as pixels. Nothing here reads a command's stdout, because
 there is no channel that carries it -- have the command write somewhere you can

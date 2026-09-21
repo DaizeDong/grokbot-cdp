@@ -20,6 +20,8 @@
     "README.md",
     "LICENSE",
     "requirements.txt",
+    "pyproject.toml",
+    "CONTRIBUTING.md",
     ".githooks/**",
     ".github/**",
     ".gitignore",
