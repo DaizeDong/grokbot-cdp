@@ -92,6 +92,7 @@ Probed from inside, a Bot's "cloud computer" is a container, not a VM:
 | PID 1 | `tini` |
 | `systemctl` | not installed |
 | `cron`, `crond`, `systemd-run` | none present |
+| restarts | yes, unannounced; observed `up 9 min` mid-run |
 | `sudo` | passwordless |
 | network | outbound works; `github.com` answers 200 |
 | python3 | 3.13 |
@@ -107,11 +108,21 @@ be a foreground loop you start yourself. `/etc/systemd/system` exists as an
 empty directory, which makes "install a timer" look available right up until
 `systemctl` is not found.
 
-**The container outlives the app.** Uptime kept counting while the desktop app
-was closed for a day, and the session reattached to the same machine after the
-client machine rebooted. So a `nohup`-ed loop does survive -- but the container
-is managed by xAI, nothing documents when it is recycled, and `/workspace` was
-empty on first contact.
+**The container outlives the app, but not indefinitely, and it restarts without
+telling you.** Uptime kept counting while the desktop app was closed for a day,
+and the session reattached to the same machine after the client machine
+rebooted, so a `nohup`-ed loop does survive those. It does not survive the
+container itself being restarted, and that happened mid-run: the session
+reconnected to a machine reporting `up 9 min`, with every open window gone, a
+background loop's pid file pointing at nothing, and untracked working files
+deleted while the git checkout and its log files came back. Nothing announced
+any of it -- the session said `Connected` throughout, and the loop's own log
+simply stopped, which reads as a quiet period rather than as a loop that ended.
+
+So treat the machine as able to restart at any moment. Anything generated there
+is not safe until it has been pushed somewhere else, and any long job should
+publish incrementally rather than at the end. Check `uptime` when you reattach:
+it is the only thing that says a restart happened.
 
 ## Why there is no Grok Bot API to use instead
 
