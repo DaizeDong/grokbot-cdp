@@ -57,6 +57,18 @@ _STATUS_JS = """
 })()
 """
 
+_VISIBILITY_JS = "document.visibilityState"
+
+
+class StaleFrameError(RuntimeError):
+    """The screen cannot be read right now, and reading it would lie.
+
+    Raised when the webview is hidden, which on a desktop means the app window
+    is minimised or fully covered. The host stops sending framebuffer updates
+    to a hidden page, so the canvas keeps whatever it last painted -- and the
+    session reports `Connected` throughout, because it is.
+    """
+
 
 class VmSession:
     """A connection to the machine behind one Grok Bot app."""
@@ -68,6 +80,8 @@ class VmSession:
                 "no noVNC webview found. The app is running but its machine view "
                 "is not open, or the app has not finished connecting."
             )
+        self._port = port
+        self._timeout = timeout
         self.cdp = Cdp(target["webSocketDebuggerUrl"], timeout=timeout)
 
     # ---------------------------------------------------------------- state
@@ -82,15 +96,45 @@ class VmSession:
             raise RuntimeError("the webview has no canvas; the session is not connected")
         return CanvasRect(raw["x"], raw["y"], raw["w"], raw["h"], raw["bw"], raw["bh"])
 
+    def is_visible(self) -> bool:
+        """Whether the webview is being painted, and so whether the screen is live."""
+        return self.cdp.eval(_VISIBILITY_JS) == "visible"
+
+    def reconnect(self, *, wait_s: float = 18.0) -> str | None:
+        """Reload the viewer and reattach, which restarts the framebuffer stream.
+
+        This touches the viewer, not the machine: the container keeps running
+        and the session comes back to the same one. Use it when the screen has
+        stopped changing but commands still take effect.
+        """
+        self.cdp.eval("location.reload()")
+        self.cdp.close()
+        time.sleep(wait_s)
+        target = find_vm_target(self._port)
+        if target is None:
+            raise RuntimeError("the viewer did not come back after a reload")
+        self.cdp = Cdp(target["webSocketDebuggerUrl"], timeout=self._timeout)
+        return self.status()
+
     def screenshot(self, path: str | Path, *, fmt: str = "jpeg",
-                   quality: int = 70) -> Path:
+                   quality: int = 70, allow_stale: bool = False) -> Path:
         """Capture the machine's screen.
 
         JPEG by default. A PNG of a 1280x800 desktop at device pixel ratio 2 is
         around a megabyte of base64 in a single websocket message, which times
         out intermittently; the same frame as JPEG is a seventh of that and has
         not. Pass fmt="png" when the pixels matter more than the reliability.
+
+        Refuses to capture a hidden webview, because that returns the last
+        painted frame with nothing to distinguish it from a current one. Pass
+        allow_stale=True to take it anyway.
         """
+        if not allow_stale and not self.is_visible():
+            raise StaleFrameError(
+                "the webview is hidden, so this would return the last frame it "
+                "painted rather than the screen now. Restore the app window, or "
+                "call reconnect(), or pass allow_stale=True."
+            )
         params: dict = {"format": fmt}
         if fmt == "jpeg":
             params["quality"] = quality

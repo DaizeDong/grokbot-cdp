@@ -151,6 +151,15 @@ websocket message. At a 30 second timeout it fails intermittently; the same
 frame as JPEG is roughly a seventh of the size. This library defaults to JPEG
 at quality 70 and a 120 second timeout.
 
+**A minimised window freezes the screen, and nothing says so.** The host stops
+sending framebuffer updates to a hidden webview, so the canvas keeps its last
+painted frame. Input keeps working the whole time, `status()` keeps answering
+`Connected (encrypted)`, and successive screenshots come back byte-identical --
+which reads as "nothing happened on the machine" rather than "I am looking at
+an old picture". Two rounds of a real run were read off a stale frame this way.
+`screenshot()` now refuses on a hidden webview; `reconnect()` reloads the viewer
+and restarts the stream without touching the container.
+
 **Coordinates must be fractions.** The canvas backing store is the machine's
 resolution, the element is laid out at whatever size the webview gives it, and
 a screenshot returns at the device pixel ratio. Three scales. A fraction of the
@@ -202,7 +211,7 @@ revoked on its own.
 | `grokbot_cdp/vm.py` | Read the screen, click, type, run a command. |
 | `grokbot_cdp/secrets.py` | Put a credential on the machine without showing it. |
 | `examples/` | A capability probe and a one-command runner. |
-| `tests/` | Offline checks: target selection, input shape, shell quoting, repository hygiene. |
+| `tests/` | Offline checks: target selection, input shape, shell quoting, screen liveness, repository hygiene. |
 | `CONTRIBUTING.md` | How to clone it with its gates, and what has to be measured rather than assumed. |
 
 ## Install and run
