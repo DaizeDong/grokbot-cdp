@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Screenshots of a live machine. They show whatever was on that screen, which
+# is why they are never committed even when they look harmless.
+*.jpg
+*.jpeg
+*.png
+
+# Anything resembling a credential file, in case one is ever written here by
+# mistake rather than on the machine where it belongs.
+.env
+*.env
+*_key
+*_key.pub
