@@ -44,23 +44,21 @@ with VmSession() as vm:
 Four hops, and only the last two leave this machine.
 
 ```mermaid
-flowchart LR
-  subgraph L["LOCAL, loopback only"]
-    direction TB
+flowchart TB
+  subgraph L["LOCAL &middot; loopback only, nothing leaves the machine"]
     code["<b>Your code</b><br/>grokbot_cdp"]
-    app["<b>Grok Bot desktop app</b><br/>Electron, already signed in<br/>--remote-debugging-port=9222"]
-    wv["<b>noVNC webview target</b><br/>type=webview, url has vnc.html<br/>a canvas, and a websocket"]
+    app["<b>Grok Bot app</b> (Electron)<br/>already signed in<br/>--remote-debugging-port=9222"]
+    wv["<b>noVNC webview target</b><br/>type=webview, url has vnc.html<br/>one canvas, one websocket"]
   end
-  subgraph R["ACROSS THE NETWORK, xAI's side"]
-    direction TB
-    host["<b>Session host</b><br/>terminates the RFB websocket<br/>status: Connected (encrypted)"]
-    box["<b>Your cloud computer</b><br/>container: tini as PID 1, no systemd, no cron<br/>desktop 1280x800, passwordless sudo, /workspace<br/><i>shared by every Bot on the account</i>"]
+  subgraph R["ACROSS THE NETWORK &middot; xAI's side"]
+    host["<b>Session host</b><br/>terminates the RFB websocket"]
+    box["<b>Your cloud computer</b><br/>container: tini as PID 1, no systemd, no cron<br/>1280x800 desktop, passwordless sudo, /workspace<br/><i>shared by every Bot on the account</i>"]
   end
 
-  code -->|"HTTP GET /json/list<br/>127.0.0.1:9222, pick the target"| app
+  code -->|"GET /json/list<br/>127.0.0.1:9222"| app
   app -.->|"hosts"| wv
-  code ==>|"<b>raw CDP websocket</b><br/>no Origin header<br/>Input.dispatchKeyEvent / dispatchMouseEvent<br/>Page.captureScreenshot"| wv
-  wv ==>|"<b>RFB over WSS</b><br/>keystrokes and mouse out, pixels back"| host
+  code ==>|"<b>raw CDP websocket</b>, no Origin header<br/>Input.dispatchKeyEvent &middot; Page.captureScreenshot"| wv
+  wv ==>|"<b>RFB over WSS</b><br/>input out, pixels back"| host
   host --> box
   box -.->|"pixels are the only return channel"| code
 
