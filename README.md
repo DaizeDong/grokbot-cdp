@@ -41,26 +41,29 @@ with VmSession() as vm:
 
 ## How it works: CDP to the Electron app, then its noVNC webview
 
-Four hops, and only the last two leave this machine.
+Four hops, and only the last two leave this machine. The two that matter are
+the raw CDP websocket, which carries `Input.dispatchKeyEvent`,
+`Input.dispatchMouseEvent` and `Page.captureScreenshot`, and the RFB websocket
+underneath it, which is what noVNC turns those events into.
 
 ```mermaid
 flowchart TB
-  subgraph L["LOCAL &middot; loopback only, nothing leaves the machine"]
+  subgraph L["LOCAL &middot; loopback only"]
     code["<b>Your code</b><br/>grokbot_cdp"]
-    app["<b>Grok Bot app</b> (Electron)<br/>already signed in<br/>--remote-debugging-port=9222"]
-    wv["<b>noVNC webview target</b><br/>type=webview, url has vnc.html<br/>one canvas, one websocket"]
+    app["<b>Grok Bot app</b><br/>Electron, signed in<br/>port 9222"]
+    wv["<b>noVNC webview</b><br/>a canvas and<br/>a websocket"]
   end
-  subgraph R["ACROSS THE NETWORK &middot; xAI's side"]
-    host["<b>Session host</b><br/>terminates the RFB websocket"]
-    box["<b>Your cloud computer</b><br/>container: tini as PID 1, no systemd, no cron<br/>1280x800 desktop, passwordless sudo, /workspace<br/><i>shared by every Bot on the account</i>"]
+  subgraph R["ACROSS THE NETWORK"]
+    host["<b>Session host</b><br/>ends the RFB<br/>websocket"]
+    box["<b>Your cloud computer</b><br/>container, 1280x800<br/><i>shared by every Bot</i>"]
   end
 
-  code -->|"GET /json/list<br/>127.0.0.1:9222"| app
+  code -->|"GET /json/list"| app
   app -.->|"hosts"| wv
-  code ==>|"<b>raw CDP websocket</b>, no Origin header<br/>Input.dispatchKeyEvent &middot; Page.captureScreenshot"| wv
-  wv ==>|"<b>RFB over WSS</b><br/>input out, pixels back"| host
+  code ==>|"raw CDP<br/>no Origin header"| wv
+  wv ==>|"RFB over WSS<br/>input out"| host
   host --> box
-  box -.->|"pixels are the only return channel"| code
+  box -.->|"pixels back"| code
 
   classDef local fill:#eef2ff,stroke:#6366f1,color:#0f172a;
   classDef net fill:#fef9c3,stroke:#ca8a04,color:#0f172a;
