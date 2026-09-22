@@ -7,10 +7,15 @@
     "DATA    = anything a REAL RUN produced and the tool reads back. Never tracked;",
     "          lives in a private companion store, with a schema shipped here.",
     "",
+    "",
+    "The `tool` list is check 4's WHITELIST, not an inventory of the repo. A path",
+    "belongs here only when a hand-written file happens to look like a real-run",
+    "artefact and has to be argued for once, in a diff. TOOL is the default class,",
+    "so a file missing from this list is not unclassified.",
     "Enforced by guards/tools/data_boundary.py in .githooks and in CI."
   ],
   "_audited": "2026-09-21. The question is whether shipped code can put real-run output at a repo-relative path, and whether anything here is lifelike data. Both lists come out empty, and both are conclusions rather than defaults.\n\nDATA: this library drives a remote machine and can capture its screen. VmSession.screenshot() writes wherever the caller says, and both examples pass a bare filename, which resolves to the working directory -- the repo root when run as documented. Such a file shows whatever was on that machine. But it is not DATA in the sense this manifest means: nothing reads it back, no run resolves it, and there is no schema to publish, so declaring it would demand a *.jpg.example that could only be a lie. It is incidental output that must simply never be committed, which is what .gitignore says and what the guard's own RUN-SHAPE check enforces independently of this file. secrets.write_env_file writes only to the REMOTE machine and has no local path at all. Nothing else here writes anything.\n\nFIXTURE: the test data is a CDP target list and a few env values -- example.invalid hosts, a token literally spelled 'x', a credential spelled 's3cret'. None of it is lifelike, none has a real counterpart anyone could be tempted to paste in place of it, and a generator for it would guard against nothing.",
-  "_armed": "Tested, and the first version of this note was WRONG. It claimed data_boundary's RUN-SHAPE check would refuse a force-added screenshot whether or not this manifest mentioned one. It does not: `git add -f screen.jpg` followed by the guard reported 'clean, 22 tracked files carry no real-run shape'. Its heuristic knows jsonl ledgers, dated files under output directories and databases; a bare .jpg is not a shape it recognises, and a screenshot is the only real-run output this repo can produce. That left .gitignore as the whole control, and .gitignore is advisory. The control is now tests/test_repo_hygiene.py, which fails if any image is tracked and also fails if git lists almost nothing -- so it cannot pass by having examined an empty list.",
+  "_armed": "Tested, and the first version of this note was WRONG. It claimed data_boundary's RUN-SHAPE check would refuse a force-added screenshot whether or not this manifest mentioned one. It does not: `git add -f screen.jpg` followed by the guard reported 'clean, 22 tracked files carry no real-run shape'. Its heuristic knows jsonl ledgers, dated files under output directories and databases; a bare .jpg is not a shape it recognises, and a screenshot is the only real-run output this repo can produce. That left .gitignore as the whole control, and .gitignore is advisory. The control is now tests/test_repo_hygiene.py, which fails if any image is tracked and also fails if git lists almost nothing -- so it cannot pass by having examined an empty list.\n\nRe-measured 2026-09-22 while applying the house repo spec, and the finding stands: `git add -f screen.jpg` then `python guards/tools/data_boundary.py` printed 'clean ... 28 tracked files carry no real-run shape' and exited 0. The control is no longer CI-only. .githooks/pre-commit refuses any staged image outright, in shell, with no optional dependency, because a control that is skipped when a binary is absent is the wrong shape for the one hazard this repository actually has.",
   "data": [],
   "fixture": [],
   "tool": [
@@ -26,6 +31,11 @@
     ".github/**",
     ".gitignore",
     ".gitmodules",
-    ".dataclass.json"
+    ".dataclass.json",
+    "README_CN.md",
+    "ROADMAP.md",
+    "CHANGELOG.md",
+    "reference/**",
+    "docs/**"
   ]
 }

@@ -12,7 +12,14 @@ git clone --recursive https://github.com/DaizeDong/grokbot-cdp
 cd grokbot-cdp
 pip install -e .
 pip install pytest
+git config core.hooksPath .githooks
 ```
+
+**That last line is not optional and cannot be done for you.** `core.hooksPath`
+is local configuration, so it is not in the repository and a fresh clone does
+not have it. Without it none of `.githooks/` runs, every argument below about
+what the hooks refuse is unreachable, and the first sign of trouble is a CI
+failure on something already pushed.
 
 The gates live in two submodules, `guards/` and `style/`. A plain `git clone`
 leaves those directories present and **empty**, which is the dangerous shape:
@@ -44,9 +51,18 @@ a commit message. Use the placeholders that are already here,
 
 Screenshots are the specific hazard of this project. A frame from one of these
 sessions shows whatever was on that machine, which may be a terminal
-mid-session or a credential if echo was on. `.gitignore` covers the default
-output names, and `tests/test_repo_hygiene.py` is the control that `git add -f`
-cannot walk through.
+mid-session or a credential if echo was on.
+
+Three things stand between a frame and the public, and it is worth knowing what
+each one is worth. `.gitignore` covers the default output names, and `.gitignore`
+is advice: `git add -f` walks straight through it. `data_boundary` does not help
+here at all, and this is measured rather than assumed, since force-adding a
+`.jpg` and running it prints `clean` and exits 0: its run-shape check knows
+ledgers and dated files, and an image is not a shape it recognises. What does
+refuse is `.githooks/pre-commit`, which blocks any staged image outright, and
+`tests/test_repo_hygiene.py`, which fails in CI on any tracked image. The hook
+is the one that acts before the frame is public; the test is the backstop for a
+clone that never armed the hook.
 
 `pii-guard` runs as a pre-commit hook and again in CI, where it cannot be
 skipped. **Never use `--no-verify`.** If a hook blocks you, the content is the
