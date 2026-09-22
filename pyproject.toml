@@ -22,6 +22,9 @@ dynamic = ["version"]
 description = "Drive the cloud machine behind a Grok Bot (xAI computer-use agent) from Python over the Chrome DevTools Protocol: attach to the Electron app's noVNC webview, read the screen, send input."
 readme = "README.md"
 license = { file = "LICENSE" }
+# The spec fixes author.name as the fleet fingerprint; for a Python package this
+# is where it lives, since there is no plugin manifest to carry it.
+authors = [{ name = "DaizeDong" }]
 requires-python = ">=3.11"
 keywords = [
     "grok",

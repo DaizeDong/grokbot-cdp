@@ -32,4 +32,27 @@ fi
 if [ -f "$_ROOT/.pre-commit-config.yaml" ] && command -v pre-commit >/dev/null 2>&1; then
   pre-commit run --hook-stage pre-commit || exit 1
 fi
+
+# The one check the submodule cannot deduplicate, because this is the only repo in the
+# fleet whose real-run output is a PICTURE. data_boundary's run-shape check knows jsonl
+# ledgers, dated files under output directories and databases; a bare .jpg is not a shape
+# it recognises, and `git add -f screen.jpg` followed by the guard prints "clean" and
+# exits 0. Measured on a scratch copy, so this is not a worry about what might happen.
+#
+# tests/test_repo_hygiene.py does catch it, and runs only in CI, which is one step after
+# the frame is public. For a screenshot of a live machine that is one step too late, so
+# the same question is asked here, in shell, with no dependency that can be absent: an
+# optional framework that is skipped when its binary is missing is the wrong shape for a
+# control whose whole job is to be there.
+_IMGS=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -iE '\.(jpg|jpeg|png|gif|bmp|webp|tiff?|avif)$' || true)
+if [ -n "$_IMGS" ]; then
+  echo "BLOCKED: this commit adds an image, and the only images this repo can produce are"
+  echo "frames of a live remote machine, which show whatever was on it:"
+  echo "$_IMGS" | sed 's/^/      /'
+  echo "  If it is genuinely not a captured screen, say so in the commit and re-run with the"
+  echo "  file removed from the index, then add it in a commit of its own that says what it is."
+  exit 1
+fi
+
 exec sh "$_REAL" "$@"
