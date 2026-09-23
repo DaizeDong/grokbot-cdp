@@ -15,6 +15,7 @@ pixel ratio. Three different scales; a fraction survives all of them.
 from __future__ import annotations
 
 import base64
+import hashlib
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,10 +64,19 @@ _VISIBILITY_JS = "document.visibilityState"
 class StaleFrameError(RuntimeError):
     """The screen cannot be read right now, and reading it would lie.
 
-    Raised when the webview is hidden, which on a desktop means the app window
-    is minimised or fully covered. The host stops sending framebuffer updates
-    to a hidden page, so the canvas keeps whatever it last painted -- and the
-    session reports `Connected` throughout, because it is.
+    Raised in two cases, and the second was found the hard way.
+
+    The webview is hidden, which on a desktop means the app window is minimised
+    or fully covered. The host stops sending framebuffer updates to a hidden
+    page, so the canvas keeps whatever it last painted, and the session reports
+    `Connected` throughout, because it is.
+
+    Or the view is visible and the frame still has not advanced. A view that has
+    just reconnected reports visible before the host has pushed anything, so the
+    canvas holds the frame from the previous session: on 2026-09-23 a freshly
+    restored app returned a capture of a command run hours earlier, and it was
+    read as the result of the command just sent. Visibility is a precondition
+    for a fresh frame, not evidence of one. Only content is evidence.
     """
 
 
@@ -115,6 +125,41 @@ class VmSession:
             raise RuntimeError("the viewer did not come back after a reload")
         self.cdp = Cdp(target["webSocketDebuggerUrl"], timeout=self._timeout)
         return self.status()
+
+    def frame_hash(self) -> str:
+        """A cheap fingerprint of what the screen shows right now.
+
+        Reads the canvas rather than Page.captureScreenshot: same pixels, a
+        seventh of the bytes, and this gets called in a loop.
+        """
+        js = ("(() => {const k=document.querySelector('canvas');"
+              "const o=document.createElement('canvas');o.width=k.width;o.height=k.height;"
+              "o.getContext('2d').drawImage(k,0,0);"
+              "return o.toDataURL('image/jpeg',0.4);})()")
+        return hashlib.sha256(self.cdp.eval(js).encode("ascii")).hexdigest()
+
+    def wait_for_new_frame(self, previous: str, *, tries: int = 10,
+                           delay_s: float = 2.0) -> str:
+        """Block until the screen differs from `previous`, or give up loudly.
+
+        Take `previous` BEFORE sending the command whose result you intend to
+        read. Any command moves the prompt, so an unchanged screen afterwards
+        means the frame did not advance, not that the command printed nothing.
+
+        The honest limit: a screen that is genuinely identical after a command
+        cannot be told from a frozen one, so callers should fingerprint before
+        sending rather than comparing two captures taken after.
+        """
+        for _ in range(tries):
+            now = self.frame_hash()
+            if now != previous:
+                return now
+            time.sleep(delay_s)
+        raise StaleFrameError(
+            "the frame did not change after the command was sent, so reading it "
+            "would return the previous session's screen. Call reconnect(), or "
+            "restore the app window, and try again."
+        )
 
     def screenshot(self, path: str | Path, *, fmt: str = "jpeg",
                    quality: int = 70, allow_stale: bool = False) -> Path:
