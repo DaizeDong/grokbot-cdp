@@ -6,6 +6,12 @@ All notable changes to this project are documented here (Keep a Changelog style)
 
 ### Changed
 
+- **Gates run from local checkouts.** The `guards` and `style` submodules and the
+  `pii-guard`, `dash-guard` and `fleet-sync` workflows are gone. The `.githooks` shims
+  run the fleet-guards and fleet-style checkouts named by `git config fleet.guards` and
+  `fleet.style` and block when either is unset; the staged-image block stays in
+  `.githooks/pre-commit`.
+
 - **docs: unify repo structure (Skill Repo Spec v1).** README split into an English
   authority and a Chinese counterpart with matching sections, the protocol and
   operational invariants moved out of the README into `reference/`, and the mandatory

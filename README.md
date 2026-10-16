@@ -56,16 +56,15 @@ matters has to write somewhere you can reach by another route.
 Python 3.11 or newer, on Windows, macOS or Linux.
 
 ```bash
-git clone --recursive https://github.com/DaizeDong/grokbot-cdp
+git clone https://github.com/DaizeDong/grokbot-cdp
 cd grokbot-cdp
 pip install -e .                       # or: pip install -r requirements.txt
 git config core.hooksPath .githooks    # arms the guards; local config, so it cannot be committed
 ```
 
-`--recursive` matters. The gates live in submodules, and a plain clone leaves those
-directories present and empty, which `.githooks/pre-commit` refuses rather than passing
-in silence. If you already cloned without it, run
-`git submodule update --init --recursive`.
+The hooks run the local fleet-guards and fleet-style checkouts named by
+`git config fleet.guards` and `git config fleet.style`. When either is unset, or the
+checkout has no hook, `.githooks/` refuses the commit rather than passing in silence.
 
 The app must be signed in already. This library does not handle login, and should not:
 that is the one step worth doing yourself.

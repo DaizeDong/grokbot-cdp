@@ -48,15 +48,14 @@
 Python 3.11 或更新，Windows、macOS、Linux 均可。
 
 ```bash
-git clone --recursive https://github.com/DaizeDong/grokbot-cdp
+git clone https://github.com/DaizeDong/grokbot-cdp
 cd grokbot-cdp
 pip install -e .                       # 或者：pip install -r requirements.txt
 git config core.hooksPath .githooks    # 装载闸门；这是本地配置，无法被提交
 ```
 
-`--recursive` 很要紧。闸门放在 submodule 里，不带这个参数克隆会留下存在但为空的目录，而
-`.githooks/pre-commit` 对这种情况是拒绝，不是默默放行。如果已经克隆过了，补跑
-`git submodule update --init --recursive`。
+钩子调用 `git config fleet.guards` 和 `git config fleet.style` 指向的本机 fleet-guards、
+fleet-style 检出。任一没设或检出里没有钩子，`.githooks/` 会拒绝提交，不会默默放行。
 
 应用必须是已登录状态。这个库不处理登录，也不该处理：那恰恰是唯一值得你自己动手的一步。
 

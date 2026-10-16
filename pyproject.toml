@@ -65,8 +65,8 @@ Issues = "https://github.com/DaizeDong/grokbot-cdp/issues"
 version = { attr = "grokbot_cdp.__version__" }
 
 [tool.setuptools]
-# Explicit, because auto-discovery would otherwise walk examples/, tests/ and
-# the two submodules and try to decide which of them are packages.
+# Explicit, because auto-discovery would otherwise walk examples/ and tests/
+# and try to decide which of them are packages.
 packages = ["grokbot_cdp"]
 
 [tool.pytest.ini_options]

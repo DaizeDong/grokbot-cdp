@@ -5,10 +5,10 @@ it is not design, it is the residue of a run that went wrong: the doubled
 keystrokes, the missing Origin header, the JPEG default. So the rule that
 matters most here is about evidence, not style.
 
-## Clone it with the submodules
+## Clone it and arm the hooks
 
 ```
-git clone --recursive https://github.com/DaizeDong/grokbot-cdp
+git clone https://github.com/DaizeDong/grokbot-cdp
 cd grokbot-cdp
 pip install -e .
 pip install pytest
@@ -18,18 +18,13 @@ git config core.hooksPath .githooks
 **That last line is not optional and cannot be done for you.** `core.hooksPath`
 is local configuration, so it is not in the repository and a fresh clone does
 not have it. Without it none of `.githooks/` runs, every argument below about
-what the hooks refuse is unreachable, and the first sign of trouble is a CI
-failure on something already pushed.
+what the hooks refuse is unreachable.
 
-The gates live in two submodules, `guards/` and `style/`. A plain `git clone`
-leaves those directories present and **empty**, which is the dangerous shape:
-git finds no hook there and runs nothing, exit 0, in silence. `.githooks/`
-carries a stub that refuses the commit instead and tells you to run
-`git submodule update --init --recursive`. Do that rather than working around
-it.
-
-Those two directories are other repositories. Do not edit anything inside
-them from here.
+The gates live in two local checkouts outside this repository, fleet-guards and
+fleet-style, named by `git config fleet.guards` and `git config fleet.style`.
+When either setting is unset or its checkout has no hook, the `.githooks/` shims
+refuse the commit instead of running nothing. Set them rather than working
+around it.
 
 ## State only what you measured
 
@@ -60,12 +55,11 @@ here at all, and this is measured rather than assumed, since force-adding a
 `.jpg` and running it prints `clean` and exits 0: its run-shape check knows
 ledgers and dated files, and an image is not a shape it recognises. What does
 refuse is `.githooks/pre-commit`, which blocks any staged image outright, and
-`tests/test_repo_hygiene.py`, which fails in CI on any tracked image. The hook
+`tests/test_repo_hygiene.py`, which fails on any tracked image. The hook
 is the one that acts before the frame is public; the test is the backstop for a
 clone that never armed the hook.
 
-`pii-guard` runs as a pre-commit hook and again in CI, where it cannot be
-skipped. **Never use `--no-verify`.** If a hook blocks you, the content is the
+`pii-guard` runs as a pre-commit and pre-push hook. **Never use `--no-verify`.** If a hook blocks you, the content is the
 problem. And never pipe `git commit` into something that truncates its output:
 a severed pipe has destroyed a hook's exit status here before, and the commit
 went in looking clean.
