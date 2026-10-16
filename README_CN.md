@@ -98,7 +98,6 @@ python examples/run_command.py "ls -la /workspace"
 | `grokbot_cdp/vm.py` | 读屏、点击、输入、执行命令、重连。 |
 | `grokbot_cdp/secrets.py` | 在不显示内容的前提下把凭据放到机器上。 |
 | `examples/` | 一个能力探针和一个单命令执行器。 |
-| `tests/` | 离线检查：target 选取、输入形状、shell 引用、屏幕活性、打包、仓库卫生。 |
 | `CONTRIBUTING.md` | 怎么连同闸门一起克隆，以及哪些东西必须实测而不能假定。 |
 
 ## 局限

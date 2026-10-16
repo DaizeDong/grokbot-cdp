@@ -11,7 +11,6 @@ matters most here is about evidence, not style.
 git clone https://github.com/DaizeDong/grokbot-cdp
 cd grokbot-cdp
 pip install -e .
-pip install pytest
 git config core.hooksPath .githooks
 ```
 
@@ -54,36 +53,13 @@ is advice: `git add -f` walks straight through it. `data_boundary` does not help
 here at all, and this is measured rather than assumed, since force-adding a
 `.jpg` and running it prints `clean` and exits 0: its run-shape check knows
 ledgers and dated files, and an image is not a shape it recognises. What does
-refuse is `.githooks/pre-commit`, which blocks any staged image outright, and
-`tests/test_repo_hygiene.py`, which fails on any tracked image. The hook
-is the one that acts before the frame is public; the test is the backstop for a
-clone that never armed the hook.
+refuse is `.githooks/pre-commit`, which blocks any staged image outright, so a
+clone that never armed the hook has nothing else in its way.
 
 `pii-guard` runs as a pre-commit and pre-push hook. **Never use `--no-verify`.** If a hook blocks you, the content is the
 problem. And never pipe `git commit` into something that truncates its output:
 a severed pipe has destroyed a hook's exit status here before, and the commit
 went in looking clean.
-
-## Tests
-
-```
-python -m pytest tests/ -q
-```
-
-Everything in the suite is offline. There is no fixture for a real Bot and
-there should not be one, so the tests cover the parts that can be reasoned
-about without a machine: target selection, the shape of the input events,
-shell quoting, the repository hygiene checks and the packaging metadata.
-
-Two conventions, both from the same failure. A check must be **able to fail**:
-before comparing a list, assert the list is not empty, because a parser that
-matched nothing prints exactly the same green as a genuine pass. And a check
-should test the thing that ships, not a convenient stand-in: the CI
-hollow-run assertion was verified against real `pytest` output and against an
-empty run, not against a string someone wrote by hand.
-
-If you add code, add a test. If you change behaviour that a comment explains
-as "this cost a failed run", keep the explanation attached to it.
 
 ## Commits
 

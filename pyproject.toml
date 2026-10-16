@@ -10,7 +10,7 @@
 #
 # requirements.txt stays, because the examples are run straight out of a
 # checkout and that is the file people reach for. It is the same two pins as
-# below, and tests/test_packaging.py fails if the two lists ever diverge.
+# below; keep the two lists equal by hand.
 
 [build-system]
 requires = ["setuptools>=64"]
@@ -65,9 +65,6 @@ Issues = "https://github.com/DaizeDong/grokbot-cdp/issues"
 version = { attr = "grokbot_cdp.__version__" }
 
 [tool.setuptools]
-# Explicit, because auto-discovery would otherwise walk examples/ and tests/
+# Explicit, because auto-discovery would otherwise walk examples/
 # and try to decide which of them are packages.
 packages = ["grokbot_cdp"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

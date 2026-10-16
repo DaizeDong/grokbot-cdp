@@ -109,7 +109,6 @@ question it answers is the one you have.
 | `grokbot_cdp/vm.py` | Read the screen, click, type, run a command, reconnect. |
 | `grokbot_cdp/secrets.py` | Put a credential on the machine without showing it. |
 | `examples/` | A capability probe and a one-command runner. |
-| `tests/` | Offline checks: target selection, input shape, shell quoting, screen liveness, packaging, repository hygiene. |
 | `CONTRIBUTING.md` | How to clone it with its gates, and what has to be measured rather than assumed. |
 
 ## Limitations

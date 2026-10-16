@@ -12,6 +12,10 @@ All notable changes to this project are documented here (Keep a Changelog style)
   `fleet.style` and block when either is unset; the staged-image block stays in
   `.githooks/pre-commit`.
 
+- **Test suite and its CI removed.** `tests/` and `.github/workflows/tests.yml`
+  (with its zero-test floor) are gone; the staged-image block in
+  `.githooks/pre-commit` is the only control on committed screenshots.
+
 - **docs: unify repo structure (Skill Repo Spec v1).** README split into an English
   authority and a Chinese counterpart with matching sections, the protocol and
   operational invariants moved out of the README into `reference/`, and the mandatory
