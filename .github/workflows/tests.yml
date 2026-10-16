@@ -1,16 +1,7 @@
 # The test suite in CI.
 #
-# Until now it ran in one place: whoever's machine, by hand, when they remembered. pii-guard has
-# always run here, so the repo published a green check that said nothing about whether the library
-# still works. A suite that proves the invariants and never runs where the merge decision is made
-# is a habit, not a gate.
-#
-# Two things below are not decoration.
-#
-# `submodules: true`, because without it guards/ and style/ are present and EMPTY. This repo's
-# tests do not call into them, but tests/test_repo_hygiene.py filters submodule paths by prefix,
-# and a checkout that silently differs from a developer's is how a check starts testing something
-# else.
+# Until now it ran in one place: whoever's machine, by hand, when they remembered. A suite that
+# proves the invariants and never runs where the merge decision is made is a habit, not a gate.
 #
 # The hollow-run assertion, because `pytest` exits 0 on a run that collected nothing. Every test
 # here is offline and none of them can skip, so a zero-test run means collection broke, not that
@@ -30,8 +21,6 @@ jobs:
         python-version: ['3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - uses: actions/setup-python@v5
         with:

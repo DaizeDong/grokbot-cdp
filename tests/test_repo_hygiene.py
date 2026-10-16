@@ -24,9 +24,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff"}
 
-#: Paths under these are someone else's repository, pinned as submodules.
-SUBMODULES = ("guards/", "style/")
-
 
 def tracked_files() -> list[str]:
     out = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
@@ -48,7 +45,6 @@ class NoCapturedScreensTests(unittest.TestCase):
         offenders = [
             path for path in tracked_files()
             if Path(path).suffix.lower() in IMAGE_SUFFIXES
-            and not path.startswith(SUBMODULES)
         ]
         self.assertEqual(
             offenders, [],

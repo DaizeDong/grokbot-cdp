@@ -56,8 +56,8 @@ class PackagingTests(unittest.TestCase):
     def test_the_package_is_the_one_that_ships(self):
         packages = pyproject()["tool"]["setuptools"]["packages"]
         self.assertEqual(packages, ["grokbot_cdp"])
-        # Auto-discovery would have walked the submodules; make sure nobody
-        # later "simplifies" this into shipping someone else's repository.
+        # Auto-discovery would walk every top-level directory; make sure nobody
+        # later "simplifies" this into shipping files that are not the library.
         for name in packages:
             self.assertTrue((REPO_ROOT / name / "__init__.py").is_file())
 
