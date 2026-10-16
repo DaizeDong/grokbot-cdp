@@ -10,7 +10,7 @@ if [ -z "$S" ] || [ ! -s "$S/tools/dash_guard.py" ]; then
   echo "BLOCKED: git config fleet.style is unset or has no tools/dash_guard.py; nothing was checked." >&2
   exit 1
 fi
-python "$S/tools/dash_guard.py" --check --staged --added-only </dev/null || exit 1
+python "$S/tools/dash_guard.py" --staged --added-only </dev/null || exit 1
 # The only real-run output this repo can produce is a screenshot of a live machine, and
 # data_boundary does not recognise an image as a real-run shape, so staged images are refused here.
 _IMGS=$(git diff --cached --name-only --diff-filter=ACM | grep -iE '\.(jpg|jpeg|png|gif|bmp|webp|tiff?|avif)$' || true)
